@@ -24,9 +24,13 @@ public final class SessionDtos {
         }
     }
 
-    /** Meilleure perf passée sur un exercice + dernière perf (pour affichage pendant la séance). */
+    /**
+     * Meilleure perf passée sur un exercice + dernière perf + suggestion de charge
+     * (pour affichage et pré-remplissage pendant la séance).
+     */
     public record ExerciseBestDto(Double bestE1rm, Double bestWeightKg, Integer bestReps,
-                                  Double lastWeightKg, Integer lastReps) {}
+                                  Double lastWeightKg, Integer lastReps,
+                                  Double suggestedWeightKg) {}
 
     public record SessionDetailDto(Long id, LocalDate date, String focus, String focusLabel,
                                    String focusEmoji, String status, String notes, Integer durationMin,

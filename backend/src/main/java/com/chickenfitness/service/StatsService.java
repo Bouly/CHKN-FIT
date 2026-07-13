@@ -202,6 +202,25 @@ public class StatsService {
         return sessionRepository.findByUserAndStatusOrderByDateAsc(user, SessionStatus.COMPLETED);
     }
 
+    /** Export CSV de toutes les séries des séances validées. */
+    public String exportCsv(User user) {
+        StringBuilder sb = new StringBuilder(
+                "date;seance;exercice;serie;poids_kg;reps;duree_sec;distance_m;e1rm\n");
+        for (SetEntry e : setEntryRepository.findAllCompletedByUser(user.getId())) {
+            Double e1rm = e.e1rm();
+            sb.append(e.getSession().getDate()).append(';')
+                    .append(e.getSession().getFocus().getLabel()).append(';')
+                    .append(e.getExercise().getName().replace(";", ",")).append(';')
+                    .append(e.getSetNumber()).append(';')
+                    .append(e.getWeightKg() != null ? e.getWeightKg() : "").append(';')
+                    .append(e.getReps() != null ? e.getReps() : "").append(';')
+                    .append(e.getDurationSec() != null ? e.getDurationSec() : "").append(';')
+                    .append(e.getDistanceM() != null ? e.getDistanceM() : "").append(';')
+                    .append(e1rm != null ? round1(e1rm) : "").append('\n');
+        }
+        return sb.toString();
+    }
+
     private static Double round1(Double v) {
         return v == null ? null : Math.round(v * 10) / 10.0;
     }

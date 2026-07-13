@@ -70,6 +70,41 @@ function SessionView() {
 
   useEffect(load, [load]);
 
+  // Pré-remplissage : suggestion de charge (ou dernière perf) + dernières reps
+  useEffect(() => {
+    if (!session) return;
+    setInputs((prev) => {
+      const next = { ...prev };
+      for (const [exIdStr, b] of Object.entries(session.bests)) {
+        const exId = Number(exIdStr);
+        if (next[exId]) continue; // ne pas écraser une saisie en cours
+        const weight = b.suggestedWeightKg ?? b.lastWeightKg;
+        if (weight != null || b.lastReps != null) {
+          next[exId] = {
+            weightKg: weight != null ? String(weight) : "",
+            reps: b.lastReps != null ? String(b.lastReps) : "",
+            durationMin: "",
+            distanceKm: "",
+          };
+        }
+      }
+      return next;
+    });
+  }, [session]);
+
+  // Wake lock : l'écran reste allumé pendant la séance
+  useEffect(() => {
+    if (!session || session.status === "COMPLETED" || session.status === "SKIPPED") return;
+    let lock: WakeLockSentinel | null = null;
+    navigator.wakeLock
+      ?.request("screen")
+      .then((l) => (lock = l))
+      .catch(() => {});
+    return () => {
+      lock?.release().catch(() => {});
+    };
+  }, [session]);
+
   // Décompte du rest timer
   useEffect(() => {
     if (!rest || rest.remaining <= 0) return;
@@ -541,11 +576,18 @@ function ExerciseBlock({
               </span>
             )}
             {best.lastReps != null && (
-              <span>
+              <span className="mr-4">
                 Dernier {best.lastWeightKg ? `${best.lastWeightKg} kg × ` : ""}
                 {best.lastReps}
               </span>
             )}
+            {best.suggestedWeightKg != null &&
+              best.lastWeightKg != null &&
+              best.suggestedWeightKg > best.lastWeightKg && (
+                <span className="font-extrabold text-volt">
+                  Suggestion {best.suggestedWeightKg} kg ↗
+                </span>
+              )}
           </div>
         )}
       </div>

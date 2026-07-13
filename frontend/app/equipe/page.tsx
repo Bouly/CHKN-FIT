@@ -9,6 +9,7 @@ import {
   FeedItemDto,
   LeaderboardEntryDto,
   MemberDto,
+  TeamWeekStatsDto,
 } from "@/lib/types";
 
 export default function EquipePage() {
@@ -31,11 +32,13 @@ function Equipe() {
   const [badges, setBadges] = useState<BadgeDto[]>([]);
   const [members, setMembers] = useState<MemberDto[]>([]);
   const [feed, setFeed] = useState<FeedItemDto[]>([]);
+  const [weekStats, setWeekStats] = useState<TeamWeekStatsDto | null>(null);
 
   useEffect(() => {
     api<BadgeDto[]>("/api/team/badges").then(setBadges).catch(() => {});
     api<MemberDto[]>("/api/team/members").then(setMembers).catch(() => {});
     api<FeedItemDto[]>("/api/team/feed").then(setFeed).catch(() => {});
+    api<TeamWeekStatsDto>("/api/team/week-stats").then(setWeekStats).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -50,6 +53,27 @@ function Equipe() {
       <PageTitle sub="Classement, badges et activité de l'équipe.">
         Équipe
       </PageTitle>
+
+      {/* Effort collectif de la semaine */}
+      {weekStats && (
+        <div className="overflow-hidden rounded-2xl bg-sand px-6 py-5">
+          <div className="text-xs font-extrabold uppercase tracking-widest text-foreground/60">
+            Effort collectif cette semaine
+          </div>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-8 gap-y-2">
+            <div>
+              <span className="font-display text-6xl leading-none text-foreground">
+                {weekStats.totalVolumeKg.toLocaleString("fr-FR")}
+              </span>
+              <span className="ml-2 font-display text-2xl text-volt">KG</span>
+              <span className="ml-2 text-xs text-foreground/60">soulevés ensemble</span>
+            </div>
+            <div className="text-sm font-bold text-foreground/70">
+              {weekStats.totalSessions} séances · {weekStats.totalSets} séries
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard */}
       <div>

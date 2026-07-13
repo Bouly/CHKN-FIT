@@ -33,13 +33,36 @@ import java.util.stream.Collectors;
 public class PlanningService {
 
     private final WorkoutSessionRepository sessionRepository;
+    private final com.chickenfitness.repository.TeamSettingsRepository teamSettingsRepository;
 
-    public PlanningService(WorkoutSessionRepository sessionRepository) {
+    public PlanningService(WorkoutSessionRepository sessionRepository,
+                           com.chickenfitness.repository.TeamSettingsRepository teamSettingsRepository) {
         this.sessionRepository = sessionRepository;
+        this.teamSettingsRepository = teamSettingsRepository;
+    }
+
+    /** Jours d'entraînement effectifs : ceux de l'équipe si l'utilisateur la suit. */
+    public List<DayOfWeek> effectiveDays(User user) {
+        if (user.isFollowTeamPlan()) {
+            var team = teamSettingsRepository
+                    .findById(com.chickenfitness.model.TeamSettings.SINGLETON_ID);
+            if (team.isPresent()) return team.get().trainingDaysList();
+        }
+        return user.trainingDaysList();
+    }
+
+    /** Rotation effective : celle de l'équipe si l'utilisateur la suit. */
+    public List<Focus> effectiveRotation(User user) {
+        if (user.isFollowTeamPlan()) {
+            var team = teamSettingsRepository
+                    .findById(com.chickenfitness.model.TeamSettings.SINGLETON_ID);
+            if (team.isPresent()) return team.get().rotationList();
+        }
+        return user.rotationList();
     }
 
     public boolean isEligibleDay(User user, LocalDate date) {
-        return user.trainingDaysList().contains(date.getDayOfWeek())
+        return effectiveDays(user).contains(date.getDayOfWeek())
                 && !FrenchHolidays.isHoliday(date);
     }
 
@@ -64,7 +87,7 @@ public class PlanningService {
                 .collect(Collectors.toSet());
 
         int created = 0;
-        List<Focus> rotation = user.rotationList();
+        List<Focus> rotation = effectiveRotation(user);
         Focus fallback = rotation.isEmpty() ? Focus.FULL_BODY : rotation.get(0);
         for (LocalDate d = today; !d.isAfter(end); d = d.plusDays(1)) {
             if (!isEligibleDay(user, d) || existing.contains(d)) continue;
@@ -93,7 +116,7 @@ public class PlanningService {
      */
     @Transactional
     public void recalibrate(User user) {
-        List<Focus> rotation = user.rotationList();
+        List<Focus> rotation = effectiveRotation(user);
         if (rotation.isEmpty()) return;
 
         List<WorkoutSession> future = sessionRepository
@@ -108,7 +131,7 @@ public class PlanningService {
 
     /** Focus du jour selon la position parmi les jours d'entraînement de la semaine. */
     public Focus focusForDate(User user, LocalDate date) {
-        List<Focus> rotation = user.rotationList();
+        List<Focus> rotation = effectiveRotation(user);
         if (rotation.isEmpty()) return Focus.FULL_BODY;
         LocalDate monday = date
                 .with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -125,7 +148,7 @@ public class PlanningService {
      * rattrapage : le premier focus de la rotation pas encore validé cette semaine.
      */
     public Focus nextFocusFor(User user, LocalDate date) {
-        List<Focus> rotation = user.rotationList();
+        List<Focus> rotation = effectiveRotation(user);
         if (rotation.isEmpty()) return Focus.FULL_BODY;
         if (isEligibleDay(user, date)) return focusForDate(user, date);
 
@@ -167,7 +190,7 @@ public class PlanningService {
                 .findByUserAndDateBetweenOrderByDateAsc(user, from, to).stream()
                 .collect(Collectors.toMap(WorkoutSession::getDate, Function.identity()));
 
-        Set<DayOfWeek> trainingDays = new HashSet<>(user.trainingDaysList());
+        Set<DayOfWeek> trainingDays = new HashSet<>(effectiveDays(user));
         List<PlanDayDto> days = new ArrayList<>();
         for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
             String holidayName = FrenchHolidays.nameOf(d);
@@ -185,7 +208,7 @@ public class PlanningService {
      * que la séance n'est pas manquée.
      */
     public int currentStreak(User user) {
-        if (user.trainingDaysList().isEmpty()) return 0;
+        if (effectiveDays(user).isEmpty()) return 0;
         Set<LocalDate> completed = sessionRepository
                 .findByUserAndStatusOrderByDateAsc(user, SessionStatus.COMPLETED).stream()
                 .map(WorkoutSession::getDate)

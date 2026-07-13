@@ -22,6 +22,11 @@ app:
   jwt-expiration-hours: ${JWT_EXPIRATION_HOURS:168}
   upload-dir: ${UPLOAD_DIR:./uploads}
   cors-origins: ${CORS_ORIGINS:http://localhost:3000}
+  # si renseigné, l'inscription exige ce code (protège une instance exposée)
+  invite-code: ${INVITE_CODE:}
+  # webhook Slack/Teams (format {"text": "..."}) pour le rappel de séance ; vide = désactivé
+  webhook-url: ${WEBHOOK_URL:}
+  reminder-cron: ${REMINDER_CRON:0 45 11 * * MON-FRI}
 
 logging:
   level:

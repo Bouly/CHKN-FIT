@@ -68,6 +68,16 @@ public class ProgressController {
         return statsService.prEvents(user);
     }
 
+    /** Export CSV de toutes les séries validées (date;exercice;série;poids;reps;durée;distance;e1RM). */
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportCsv(@AuthenticationPrincipal User user) {
+        String csv = statsService.exportCsv(user);
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/csv;charset=UTF-8")
+                .header("Content-Disposition", "attachment; filename=\"chkn-fit-export.csv\"")
+                .body(csv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
     // ---- Mensurations ----
 
     @GetMapping("/measurements")

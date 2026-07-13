@@ -53,6 +53,18 @@ public class CatalogController {
         return templateRepository.findAll().stream().map(TemplateDto::from).toList();
     }
 
+    @DeleteMapping("/templates/{id}")
+    @Transactional
+    public java.util.Map<String, String> deleteTemplate(@PathVariable Long id) {
+        WorkoutTemplate t = templateRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Programme introuvable"));
+        if (t.isBuiltin()) {
+            throw new IllegalArgumentException("Les programmes fournis par l'app ne peuvent pas être supprimés");
+        }
+        templateRepository.delete(t);
+        return java.util.Map.of("status", "ok");
+    }
+
     @PostMapping("/templates")
     @Transactional
     public TemplateDto createTemplate(@Valid @RequestBody CreateTemplateRequest req) {

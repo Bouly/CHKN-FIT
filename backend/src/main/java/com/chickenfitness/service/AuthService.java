@@ -1,14 +1,17 @@
 package com.chickenfitness.service;
 
 import com.chickenfitness.dto.AuthDtos.AuthResponse;
+import com.chickenfitness.dto.AuthDtos.ChangePasswordRequest;
 import com.chickenfitness.dto.AuthDtos.LoginRequest;
 import com.chickenfitness.dto.AuthDtos.RegisterRequest;
 import com.chickenfitness.dto.AuthDtos.UpdateProfileRequest;
 import com.chickenfitness.dto.AuthDtos.UserDto;
 import com.chickenfitness.model.User;
 import com.chickenfitness.model.enums.Focus;
+import com.chickenfitness.model.enums.Role;
 import com.chickenfitness.repository.UserRepository;
 import com.chickenfitness.security.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,17 +27,24 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final PlanningService planningService;
+    private final String inviteCode;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       JwtService jwtService, PlanningService planningService) {
+                       JwtService jwtService, PlanningService planningService,
+                       @Value("${app.invite-code}") String inviteCode) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.planningService = planningService;
+        this.inviteCode = inviteCode;
     }
 
     @Transactional
     public AuthResponse register(RegisterRequest req) {
+        if (inviteCode != null && !inviteCode.isBlank()
+                && !inviteCode.equals(req.inviteCode() != null ? req.inviteCode().trim() : "")) {
+            throw new IllegalArgumentException("Code d'invitation invalide");
+        }
         if (userRepository.existsByEmailIgnoreCase(req.email())) {
             throw new IllegalArgumentException("Un compte existe déjà avec cet email");
         }
@@ -44,6 +54,10 @@ public class AuthService {
         user.setDisplayName(req.displayName().trim());
         if (req.avatarEmoji() != null && !req.avatarEmoji().isBlank()) {
             user.setAvatarEmoji(req.avatarEmoji());
+        }
+        // le premier inscrit de l'instance administre le planning d'équipe et les membres
+        if (userRepository.count() == 0) {
+            user.setRole(Role.ADMIN);
         }
         userRepository.save(user);
         // planning de départ : 4 semaines générées d'office
@@ -58,6 +72,15 @@ public class AuthService {
             throw new IllegalArgumentException("Email ou mot de passe incorrect");
         }
         return new AuthResponse(jwtService.generateToken(user.getEmail()), UserDto.from(user));
+    }
+
+    @Transactional
+    public void changePassword(User user, ChangePasswordRequest req) {
+        if (!passwordEncoder.matches(req.currentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Mot de passe actuel incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
+        userRepository.save(user);
     }
 
     @Transactional
@@ -79,6 +102,7 @@ public class AuthService {
                     .peek(DayOfWeek::valueOf) // valide
                     .collect(Collectors.joining(","));
             user.setTrainingDays(csv);
+            user.setFollowTeamPlan(false); // réglage perso => on quitte le planning d'équipe
             planChanged = true;
         }
         if (req.rotation() != null && !req.rotation().isEmpty()) {
@@ -87,6 +111,11 @@ public class AuthService {
                     .peek(Focus::valueOf) // valide
                     .collect(Collectors.joining(","));
             user.setRotation(csv);
+            user.setFollowTeamPlan(false);
+            planChanged = true;
+        }
+        if (Boolean.TRUE.equals(req.followTeamPlan()) && !user.isFollowTeamPlan()) {
+            user.setFollowTeamPlan(true); // retour au planning d'équipe
             planChanged = true;
         }
         userRepository.save(user);

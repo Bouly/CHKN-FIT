@@ -41,4 +41,12 @@ public class AuthController {
                                  @RequestBody UpdateProfileRequest req) {
         return authService.updateProfile(user, req);
     }
+
+    @PostMapping("/password")
+    public java.util.Map<String, String> changePassword(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody com.chickenfitness.dto.AuthDtos.ChangePasswordRequest req) {
+        authService.changePassword(user, req);
+        return java.util.Map.of("status", "ok");
+    }
 }

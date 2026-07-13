@@ -27,6 +27,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Définis JWT_SECRET dans .env (64+ caractères aléatoires)}
       UPLOAD_DIR: /app/uploads
       CORS_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
+      INVITE_CODE: ${INVITE_CODE:-}
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+      REMINDER_CRON: ${REMINDER_CRON:-0 45 11 * * MON-FRI}
     volumes:
       - uploads:/app/uploads
     ports:

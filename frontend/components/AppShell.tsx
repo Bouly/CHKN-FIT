@@ -12,6 +12,7 @@ const NAV = [
   { href: "/progression", label: "Progression" },
   { href: "/physique", label: "Physique" },
   { href: "/mensurations", label: "Mensurations" },
+  { href: "/programmes", label: "Programmes" },
   { href: "/equipe", label: "Équipe" },
   { href: "/parametres", label: "Paramètres" },
 ];

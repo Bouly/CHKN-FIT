@@ -5,11 +5,24 @@ export interface UserDto {
   email: string;
   displayName: string;
   avatarEmoji: string;
+  role: "ADMIN" | "MEMBER";
+  followTeamPlan: boolean;
   heightCm: number | null;
   birthDate: string | null;
   goal: string | null;
   trainingDays: string[];
   rotation: string[];
+}
+
+export interface TeamSettingsDto {
+  trainingDays: string[];
+  rotation: string[];
+}
+
+export interface TeamWeekStatsDto {
+  totalVolumeKg: number;
+  totalSessions: number;
+  totalSets: number;
 }
 
 export interface AuthResponse {
@@ -94,6 +107,7 @@ export interface ExerciseBestDto {
   bestReps: number | null;
   lastWeightKg: number | null;
   lastReps: number | null;
+  suggestedWeightKg: number | null;
 }
 
 export interface SessionDetailDto {
@@ -195,6 +209,8 @@ export interface MemberDto {
   userId: number;
   displayName: string;
   avatarEmoji: string;
+  role: "ADMIN" | "MEMBER";
+  followTeamPlan: boolean;
   streak: number;
   totalSessions: number;
   goal: string | null;

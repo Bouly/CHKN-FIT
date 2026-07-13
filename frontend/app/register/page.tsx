@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [avatar, setAvatar] = useState("🐔");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +26,13 @@ export default function RegisterPage() {
     try {
       const res = await api<AuthResponse>("/api/auth/register", {
         method: "POST",
-        body: { email, password, displayName, avatarEmoji: avatar },
+        body: {
+          email,
+          password,
+          displayName,
+          avatarEmoji: avatar,
+          inviteCode: inviteCode || null,
+        },
       });
       setToken(res.token);
       router.replace("/");
@@ -82,6 +89,14 @@ export default function RegisterPage() {
               minLength={8}
               placeholder="••••••••"
               required
+            />
+          </div>
+          <div>
+            <Label>Code d&apos;invitation — si l&apos;équipe en a défini un</Label>
+            <Input
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              placeholder="optionnel"
             />
           </div>
           <div>

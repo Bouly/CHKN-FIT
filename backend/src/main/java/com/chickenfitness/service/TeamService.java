@@ -6,45 +6,116 @@ import com.chickenfitness.dto.TeamDtos.BadgeDto;
 import com.chickenfitness.dto.TeamDtos.FeedItemDto;
 import com.chickenfitness.dto.TeamDtos.LeaderboardEntryDto;
 import com.chickenfitness.dto.TeamDtos.MemberDto;
+import com.chickenfitness.dto.TeamDtos.TeamSettingsDto;
+import com.chickenfitness.dto.TeamDtos.TeamWeekStatsDto;
+import com.chickenfitness.dto.TeamDtos.UpdateTeamSettingsRequest;
+import com.chickenfitness.model.SetEntry;
+import com.chickenfitness.model.TeamSettings;
 import com.chickenfitness.model.User;
 import com.chickenfitness.model.WorkoutSession;
+import com.chickenfitness.model.enums.Focus;
 import com.chickenfitness.model.enums.SessionStatus;
 import com.chickenfitness.repository.MeasurementRepository;
 import com.chickenfitness.repository.ProgressPhotoRepository;
+import com.chickenfitness.repository.SetEntryRepository;
+import com.chickenfitness.repository.TeamSettingsRepository;
 import com.chickenfitness.repository.UserRepository;
 import com.chickenfitness.repository.WorkoutSessionRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class TeamService {
 
     private final UserRepository userRepository;
     private final WorkoutSessionRepository sessionRepository;
+    private final SetEntryRepository setEntryRepository;
     private final ProgressPhotoRepository photoRepository;
     private final MeasurementRepository measurementRepository;
+    private final TeamSettingsRepository teamSettingsRepository;
     private final PlanningService planningService;
     private final StatsService statsService;
+    private final PasswordEncoder passwordEncoder;
+    private final SecureRandom random = new SecureRandom();
 
     public TeamService(UserRepository userRepository,
                        WorkoutSessionRepository sessionRepository,
+                       SetEntryRepository setEntryRepository,
                        ProgressPhotoRepository photoRepository,
                        MeasurementRepository measurementRepository,
+                       TeamSettingsRepository teamSettingsRepository,
                        PlanningService planningService,
-                       StatsService statsService) {
+                       StatsService statsService,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
+        this.setEntryRepository = setEntryRepository;
         this.photoRepository = photoRepository;
         this.measurementRepository = measurementRepository;
+        this.teamSettingsRepository = teamSettingsRepository;
         this.planningService = planningService;
         this.statsService = statsService;
+        this.passwordEncoder = passwordEncoder;
     }
+
+    // ---- Planning central de l'équipe ----
+
+    public TeamSettingsDto getSettings() {
+        return TeamSettingsDto.from(settings());
+    }
+
+    /** Met à jour le planning d'équipe et recalibre tous les membres qui le suivent. */
+    @Transactional
+    public TeamSettingsDto updateSettings(UpdateTeamSettingsRequest req) {
+        TeamSettings t = settings();
+        t.setTrainingDays(req.trainingDays().stream()
+                .map(String::trim).map(String::toUpperCase)
+                .peek(DayOfWeek::valueOf)
+                .collect(Collectors.joining(",")));
+        t.setRotation(req.rotation().stream()
+                .map(String::trim).map(String::toUpperCase)
+                .peek(Focus::valueOf)
+                .collect(Collectors.joining(",")));
+        teamSettingsRepository.save(t);
+        for (User u : userRepository.findAll()) {
+            if (u.isFollowTeamPlan()) {
+                planningService.recalibrate(u);
+            }
+        }
+        return TeamSettingsDto.from(t);
+    }
+
+    private TeamSettings settings() {
+        return teamSettingsRepository.findById(TeamSettings.SINGLETON_ID)
+                .orElseGet(() -> teamSettingsRepository.save(new TeamSettings()));
+    }
+
+    /** Réinitialise le mot de passe d'un membre (admin) : retourne un mot de passe temporaire. */
+    @Transactional
+    public String resetPassword(Long userId) {
+        User u = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("Membre introuvable"));
+        String chars = "abcdefghjkmnpqrstuvwxyz23456789";
+        StringBuilder sb = new StringBuilder("chkn-");
+        for (int i = 0; i < 10; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
+        String temp = sb.toString();
+        u.setPasswordHash(passwordEncoder.encode(temp));
+        userRepository.save(u);
+        return temp;
+    }
+
+    // ---- Points, badges, membres, feed ----
 
     /**
      * Points : séance validée = 20, PR = 15, photo = 5, mensuration = 3, + 2 par jour de streak.
@@ -110,7 +181,7 @@ public class TeamService {
             int streak = planningService.currentStreak(u);
             List<BadgeDto> earned = badges(u).stream().filter(BadgeDto::earned).toList();
             members.add(new MemberDto(u.getId(), u.getDisplayName(), u.getAvatarEmoji(),
-                    streak, total, u.getGoal(), earned));
+                    u.getRole().name(), u.isFollowTeamPlan(), streak, total, u.getGoal(), earned));
         }
         members.sort(Comparator.comparingLong(MemberDto::totalSessions).reversed());
         return members;
@@ -139,6 +210,27 @@ public class TeamService {
         return result;
     }
 
+    /** Volume collectif de la semaine en cours (défi d'équipe). */
+    public TeamWeekStatsDto weekStats() {
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        double volume = 0;
+        int sessions = 0;
+        long sets = 0;
+        for (User u : userRepository.findAll()) {
+            List<SetEntry> entries = setEntryRepository
+                    .findCompletedByUserBetween(u.getId(), monday, today);
+            sets += entries.size();
+            sessions += (int) entries.stream().map(e -> e.getSession().getId()).distinct().count();
+            for (SetEntry e : entries) {
+                if (e.getWeightKg() != null && e.getReps() != null) {
+                    volume += e.getWeightKg() * e.getReps();
+                }
+            }
+        }
+        return new TeamWeekStatsDto(Math.round(volume), sessions, sets);
+    }
+
     /** Fil d'activité : dernières séances validées + PRs associés. */
     public List<FeedItemDto> feed() {
         List<FeedItemDto> items = new ArrayList<>();
@@ -157,7 +249,7 @@ public class TeamService {
 
     public List<PrDto> memberRecords(Long userId) {
         User u = userRepository.findById(userId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Membre introuvable"));
+                .orElseThrow(() -> new NoSuchElementException("Membre introuvable"));
         return statsService.currentRecords(u);
     }
 }

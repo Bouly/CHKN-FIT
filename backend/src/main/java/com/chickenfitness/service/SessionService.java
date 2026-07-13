@@ -183,7 +183,7 @@ public class SessionService {
         Map<Long, ExerciseBestDto> bests = new HashMap<>();
         for (Long exId : exerciseIds) {
             Double bestE1rm = null, bestWeight = null, lastWeight = null;
-            Integer bestReps = null, lastReps = null;
+            Integer bestReps = null, lastReps = null, lastRpe = null;
             for (SetEntry e : setEntryRepository.findCompletedByUserAndExercise(user.getId(), exId)) {
                 if (e.getSession().getId().equals(s.getId())) continue;
                 Double v = e.e1rm();
@@ -195,10 +195,12 @@ public class SessionService {
                 if (e.getWeightKg() != null || e.getReps() != null) {
                     lastWeight = e.getWeightKg();
                     lastReps = e.getReps();
+                    lastRpe = e.getSession().getRpe();
                 }
             }
             if (bestE1rm != null || lastWeight != null || lastReps != null) {
-                bests.put(exId, new ExerciseBestDto(round1(bestE1rm), bestWeight, bestReps, lastWeight, lastReps));
+                bests.put(exId, new ExerciseBestDto(round1(bestE1rm), bestWeight, bestReps,
+                        lastWeight, lastReps, suggestWeight(lastWeight, lastReps, lastRpe)));
             }
         }
 
@@ -218,6 +220,17 @@ public class SessionService {
         return new SessionDetailDto(s.getId(), s.getDate(), s.getFocus().name(),
                 s.getFocus().getLabel(), s.getFocus().getEmoji(), s.getStatus().name(),
                 s.getNotes(), s.getDurationMin(), s.getRpe(), setDtos, suggested, bests);
+    }
+
+    /**
+     * Suggestion de charge : si la dernière perf était confortable
+     * (≥ 10 reps, ou ≥ 8 reps avec un RPE de séance ≤ 7), on propose +2,5 kg.
+     * Sinon, on reprend la dernière charge.
+     */
+    private static Double suggestWeight(Double lastWeight, Integer lastReps, Integer lastRpe) {
+        if (lastWeight == null || lastReps == null) return null;
+        boolean easy = lastReps >= 10 || (lastRpe != null && lastRpe <= 7 && lastReps >= 8);
+        return easy ? lastWeight + 2.5 : lastWeight;
     }
 
     private static Double round1(Double v) {

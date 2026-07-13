@@ -35,6 +35,14 @@ public class User {
 
     private String avatarEmoji = "🐔";
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(16) default 'MEMBER'")
+    private com.chickenfitness.model.enums.Role role = com.chickenfitness.model.enums.Role.MEMBER;
+
+    /** true = suit le planning central de l'équipe (réglages TeamSettings). */
+    @Column(nullable = false, columnDefinition = "boolean default true not null")
+    private boolean followTeamPlan = true;
+
     private Integer heightCm;
 
     private LocalDate birthDate;

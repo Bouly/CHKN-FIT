@@ -28,17 +28,25 @@ public class DataSeeder implements CommandLineRunner {
 
     private final ExerciseRepository exerciseRepository;
     private final WorkoutTemplateRepository templateRepository;
+    private final com.chickenfitness.repository.TeamSettingsRepository teamSettingsRepository;
     private final Map<String, Exercise> byName = new HashMap<>();
 
     public DataSeeder(ExerciseRepository exerciseRepository,
-                      WorkoutTemplateRepository templateRepository) {
+                      WorkoutTemplateRepository templateRepository,
+                      com.chickenfitness.repository.TeamSettingsRepository teamSettingsRepository) {
         this.exerciseRepository = exerciseRepository;
         this.templateRepository = templateRepository;
+        this.teamSettingsRepository = teamSettingsRepository;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
+        // planning central de l'équipe (singleton)
+        if (teamSettingsRepository.findById(com.chickenfitness.model.TeamSettings.SINGLETON_ID).isEmpty()) {
+            teamSettingsRepository.save(new com.chickenfitness.model.TeamSettings());
+        }
+
         // --- Pecs ---
         ex("Développé couché", CHEST, STRENGTH);
         ex("Développé incliné haltères", CHEST, STRENGTH);
