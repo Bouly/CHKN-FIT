@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chickenfitness
+      POSTGRES_USER: chicken
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-chicken-dev-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chicken -d chickenfitness"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/chickenfitness
+      DB_USER: chicken
+      DB_PASSWORD: ${DB_PASSWORD:-chicken-dev-password}
+      JWT_SECRET: ${JWT_SECRET:?Définis JWT_SECRET dans .env (64+ caractères aléatoires)}
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # URL de l'API accessible depuis le navigateur des utilisateurs
+        NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:8080}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  uploads:

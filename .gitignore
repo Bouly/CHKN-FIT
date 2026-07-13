@@ -1,0 +1,9 @@
+.env
+node_modules/
+.next/
+target/
+data/
+uploads/
+*.log
+.idea/
+.vscode/

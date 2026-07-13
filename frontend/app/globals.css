@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/*
+ * DA inspirée de Basic-Fit (tokens relevés sur basic-fit.com) :
+ * fond sable chaud, cartes blanches, orange brand #eb6800,
+ * CTA violet #592bb2, badges jaunes #ffd12e, titres heavy uppercase.
+ */
+
+:root {
+  --background: #fbf7f0; /* sand-50 */
+  --foreground: #2d2d2d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-ink: #ffffff; /* surfaces (inputs, sidebar, tuiles) */
+  --color-panel: #ffffff; /* cartes */
+  --color-raise: #f2e8d6; /* survol — sand-100 */
+  --color-sand: #e8d6bf; /* emphase — sand-200 */
+  --color-line: #e8e8e8; /* hairlines — grey-100 */
+  --color-mute: #6b6b6b; /* texte secondaire */
+  --color-volt: #eb6800; /* orange brand */
+  --color-cta: #592bb2; /* violet interaction (boutons) */
+  --color-badge: #ffd12e; /* jaune badge */
+  --color-alarm: #d92d20; /* manqué / erreur */
+  --color-off: #592bb2; /* férié */
+
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-archivo);
+}
+
+/* Titres façon Heading Pro Treble Heavy : Archivo 900 uppercase */
+@utility font-display {
+  font-family: var(--font-archivo);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::selection {
+  background: #eb6800;
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d5d5d5;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bdbdbd;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.blink {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes pr-slide {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.pr-slide {
+  animation: pr-slide 0.25s ease-out;
+}
