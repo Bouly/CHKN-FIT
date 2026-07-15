@@ -14,6 +14,7 @@ import {
   Select,
   Spinner,
 } from "@/components/ui";
+import { confirmDialog, toast } from "@/components/ui";
 import { api, apiUpload, fmtDate, photoUrl, todayIso } from "@/lib/api";
 import { PhotoDto } from "@/lib/types";
 
@@ -88,6 +89,7 @@ function Physique() {
       if (fileRef.current) fileRef.current.value = "";
       setUploadWeight("");
       setTab(uploadAngle);
+      toast("Photo ajoutée à ta progression");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur d'upload");
@@ -97,7 +99,13 @@ function Physique() {
   }
 
   async function remove(id: number) {
-    if (!confirm("Supprimer cette photo ?")) return;
+    if (
+      !(await confirmDialog("Supprimer cette photo ? Elle sera définitivement perdue.", {
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
+    )
+      return;
     await api(`/api/progress/photos/${id}`, { method: "DELETE" });
     load();
   }
@@ -315,7 +323,7 @@ function Physique() {
                   <img
                     src={photoUrl(p.id)}
                     alt={fmtDate(p.takenAt)}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     loading="lazy"
                   />
                 </div>

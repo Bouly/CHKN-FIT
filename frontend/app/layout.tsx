@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,18 @@ export const metadata: Metadata = {
   title: "CHKN-FIT",
   description:
     "Le suivi sportif de l'équipe : planning intelligent, progression, physique, classement.",
+  appleWebApp: {
+    capable: true,
+    title: "CHKN-FIT",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fbf7f0",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

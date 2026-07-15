@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { api, clearToken, getToken } from "@/lib/api";
 import { UserDto } from "@/lib/types";
+import { Confirmer, Toaster } from "@/components/ui";
 
 const NAV = [
   { href: "/", label: "Dashboard" },
@@ -108,11 +109,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <button
                   onClick={logout}
-                  className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-mute hover:text-alarm"
+                  className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-mute transition-colors hover:text-alarm"
                 >
                   Déconnexion
                 </button>
               </div>
+            </div>
+            <div className="mt-3 text-[9px] font-semibold uppercase tracking-widest text-[#d5d5d5]">
+              CHKN-FIT v1.0 — fait maison
             </div>
           </div>
         )}
@@ -143,6 +147,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 pb-24 md:ml-60 md:pb-0">
         <div className="mx-auto max-w-6xl p-4 md:p-10">{children}</div>
       </main>
+
+      <Toaster />
+      <Confirmer />
     </div>
   );
 }

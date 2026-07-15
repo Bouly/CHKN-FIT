@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
-import { Card, PageTitle, SectionTitle, Spinner } from "@/components/ui";
+import { Card, CountUp, PageTitle, SectionTitle, Spinner } from "@/components/ui";
 import { api, fmtDate } from "@/lib/api";
 import {
   BadgeDto,
@@ -56,14 +56,14 @@ function Equipe() {
 
       {/* Effort collectif de la semaine */}
       {weekStats && (
-        <div className="overflow-hidden rounded-2xl bg-sand px-6 py-5">
+        <div className="fade-up overflow-hidden rounded-2xl bg-sand px-6 py-5">
           <div className="text-xs font-extrabold uppercase tracking-widest text-foreground/60">
             Effort collectif cette semaine
           </div>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-8 gap-y-2">
             <div>
               <span className="font-display text-6xl leading-none text-foreground">
-                {weekStats.totalVolumeKg.toLocaleString("fr-FR")}
+                <CountUp value={weekStats.totalVolumeKg} duration={900} locale />
               </span>
               <span className="ml-2 font-display text-2xl text-volt">KG</span>
               <span className="ml-2 text-xs text-foreground/60">soulevés ensemble</span>

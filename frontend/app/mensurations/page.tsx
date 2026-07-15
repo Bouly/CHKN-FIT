@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import {
   Button,
   Card,
+  confirmDialog,
   EmptyState,
   ErrorBanner,
   Input,
@@ -12,6 +13,7 @@ import {
   PageTitle,
   SectionTitle,
   Spinner,
+  toast,
 } from "@/components/ui";
 import { api, fmtDate, todayIso } from "@/lib/api";
 import { MeasurementDto } from "@/lib/types";
@@ -78,6 +80,7 @@ function Mensurations() {
         hipsCm: "", bicepCm: "", thighCm: "",
       });
       setNotes("");
+      toast("Mesure enregistrée");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -87,7 +90,13 @@ function Mensurations() {
   }
 
   async function remove(id: number) {
-    if (!confirm("Supprimer cette mensuration ?")) return;
+    if (
+      !(await confirmDialog("Supprimer cette mensuration ?", {
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
+    )
+      return;
     await api(`/api/progress/measurements/${id}`, { method: "DELETE" });
     load();
   }

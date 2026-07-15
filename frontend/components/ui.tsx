@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 export function Card({
   children,
@@ -10,7 +10,9 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-line bg-panel p-5 ${className}`}>
+    <div
+      className={`rounded-xl border border-line bg-panel p-5 shadow-[0_1px_2px_rgba(45,45,45,0.04)] ${className}`}
+    >
       {children}
     </div>
   );
@@ -43,7 +45,7 @@ export function PageTitle({
   sub?: ReactNode;
 }) {
   return (
-    <div>
+    <div className="fade-up">
       <h1 className="font-display text-5xl leading-none text-foreground">
         {children}
       </h1>
@@ -91,7 +93,7 @@ export function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`cursor-pointer rounded font-extrabold uppercase tracking-wide transition-colors disabled:cursor-not-allowed ${sizes[size]} ${buttonVariants[variant]} ${className}`}
+      className={`cursor-pointer rounded font-extrabold uppercase tracking-wide transition-[background-color,border-color,color,transform,opacity] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 ${sizes[size]} ${buttonVariants[variant]} ${className}`}
     >
       {children}
     </button>
@@ -103,7 +105,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...rest}
-      className={`w-full rounded border-2 border-[#d5d5d5] bg-white px-3 py-2.5 text-sm text-foreground placeholder-neutral-400 outline-none transition-colors focus:border-cta ${className}`}
+      className={`w-full rounded border-2 border-[#d5d5d5] bg-white px-3 py-2.5 text-sm text-foreground placeholder-neutral-400 outline-none transition-colors duration-150 focus:border-cta ${className}`}
     />
   );
 }
@@ -113,7 +115,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...rest}
-      className={`w-full rounded border-2 border-[#d5d5d5] bg-white px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-cta ${className}`}
+      className={`w-full rounded border-2 border-[#d5d5d5] bg-white px-3 py-2.5 text-sm text-foreground outline-none transition-colors duration-150 focus:border-cta ${className}`}
     >
       {children}
     </select>
@@ -138,7 +140,7 @@ export function StatCard({
   sub?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-panel p-5">
+    <div className="rounded-xl border border-line bg-panel p-5 shadow-[0_1px_2px_rgba(45,45,45,0.04)]">
       <div className="text-xs font-bold uppercase tracking-wide text-mute">
         {label}
       </div>
@@ -222,10 +224,18 @@ export function PrBadge({ className = "" }: { className?: string }) {
   );
 }
 
+/** Squelette de chargement : la page a sa forme avant ses données. */
 export function Spinner() {
   return (
-    <div className="flex items-center justify-center py-20 text-xs font-extrabold uppercase tracking-widest text-mute">
-      Chargement<span className="blink ml-1.5 inline-block h-3.5 w-2 bg-volt" />
+    <div className="flex flex-col gap-5 py-2" aria-busy="true" aria-label="Chargement">
+      <div className="h-8 w-56 animate-pulse rounded-lg bg-raise/70" />
+      <div className="h-36 animate-pulse rounded-2xl bg-raise/70" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-28 animate-pulse rounded-xl bg-raise/70" />
+        ))}
+      </div>
+      <div className="h-44 animate-pulse rounded-xl bg-raise/70" />
     </div>
   );
 }
@@ -248,8 +258,219 @@ export function EmptyState({
 export function ErrorBanner({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <div className="rounded border-2 border-alarm bg-red-50 px-4 py-3 text-sm font-semibold text-alarm">
+    <div className="fade-up rounded border-2 border-alarm bg-red-50 px-4 py-3 text-sm font-semibold text-alarm">
       {message}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Compteur animé : les chiffres montent à l'affichage (dashboard)     */
+/* ------------------------------------------------------------------ */
+
+export function CountUp({
+  value,
+  duration = 700,
+  locale = false,
+}: {
+  value: number;
+  duration?: number;
+  locale?: boolean;
+}) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setDisplay(value);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(value * eased));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <>{locale ? display.toLocaleString("fr-FR") : display}</>;
+}
+
+/* ------------------------------------------------------------------ */
+/* Modale : fond flouté + zoom subtil                                  */
+/* ------------------------------------------------------------------ */
+
+export function Modal({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div
+      className="overlay-in fixed inset-0 z-40 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="modal-in w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Toasts : pilule sombre en bas, auto-dismiss, sans décaler la page   */
+/* ------------------------------------------------------------------ */
+
+type ToastKind = "success" | "error";
+interface ToastMsg {
+  id: number;
+  text: string;
+  kind: ToastKind;
+}
+
+let pushToast: ((text: string, kind: ToastKind) => void) | null = null;
+
+/** À appeler depuis n'importe quelle page : toast("Profil enregistré"). */
+export function toast(text: string, kind: ToastKind = "success") {
+  pushToast?.(text, kind);
+}
+
+export function Toaster() {
+  const [items, setItems] = useState<ToastMsg[]>([]);
+  useEffect(() => {
+    pushToast = (text, kind) => {
+      const id = Date.now() + Math.random();
+      setItems((prev) => [...prev.slice(-2), { id, text, kind }]);
+      setTimeout(
+        () => setItems((prev) => prev.filter((t) => t.id !== id)),
+        3500
+      );
+    };
+    return () => {
+      pushToast = null;
+    };
+  }, []);
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-center gap-2 px-4 md:bottom-6">
+      {items.map((t) => (
+        <div
+          key={t.id}
+          className="toast-in flex items-center gap-2.5 rounded-full bg-foreground px-5 py-2.5 text-sm font-bold text-white shadow-lg"
+          role="status"
+        >
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${
+              t.kind === "success" ? "bg-volt" : "bg-alarm"
+            }`}
+          />
+          {t.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Confirmation stylée (remplace le confirm() natif)                   */
+/* ------------------------------------------------------------------ */
+
+interface ConfirmState {
+  message: string;
+  confirmLabel: string;
+  danger: boolean;
+  resolve: (ok: boolean) => void;
+}
+
+let openConfirm: ((s: ConfirmState) => void) | null = null;
+
+/** await confirmDialog("Supprimer cette photo ?", { danger: true }) */
+export function confirmDialog(
+  message: string,
+  opts: { confirmLabel?: string; danger?: boolean } = {}
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!openConfirm) {
+      resolve(window.confirm(message)); // filet de sécurité hors AppShell
+      return;
+    }
+    openConfirm({
+      message,
+      confirmLabel: opts.confirmLabel ?? "Confirmer",
+      danger: opts.danger ?? false,
+      resolve,
+    });
+  });
+}
+
+export function Confirmer() {
+  const [state, setState] = useState<ConfirmState | null>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    openConfirm = (s) => setState(s);
+    return () => {
+      openConfirm = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (state) confirmRef.current?.focus();
+  }, [state]);
+
+  function close(ok: boolean) {
+    state?.resolve(ok);
+    setState(null);
+  }
+
+  return (
+    <Modal open={!!state} onClose={() => close(false)}>
+      {state && (
+        <div className="flex flex-col gap-5">
+          <p className="text-sm font-semibold leading-relaxed text-foreground">
+            {state.message}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => close(false)}>
+              Annuler
+            </Button>
+            <button
+              ref={confirmRef}
+              onClick={() => close(true)}
+              className={`cursor-pointer rounded px-6 py-3 text-sm font-extrabold uppercase tracking-wide transition-[background-color,transform] duration-150 active:scale-[0.97] ${
+                state.danger
+                  ? "bg-alarm text-white hover:bg-[#b3241a]"
+                  : "bg-cta text-white hover:bg-[#3b1480]"
+              }`}
+            >
+              {state.confirmLabel}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

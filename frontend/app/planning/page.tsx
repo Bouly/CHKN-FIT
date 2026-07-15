@@ -3,8 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { Button, PageTitle, Spinner, STATUS_META } from "@/components/ui";
-import { api, todayIso } from "@/lib/api";
+import {
+  Button,
+  confirmDialog,
+  PageTitle,
+  Spinner,
+  STATUS_META,
+  toast,
+} from "@/components/ui";
+import { api, fmtDateLong, todayIso } from "@/lib/api";
 import { PlanDayDto, SessionDetailDto } from "@/lib/types";
 
 const MONTHS = [
@@ -58,7 +65,11 @@ function Planning() {
   async function generate() {
     setBusy(true);
     try {
-      await api("/api/plan/generate", { method: "POST", body: { weeks: 4 } });
+      const res = await api<{ created: number }>("/api/plan/generate", {
+        method: "POST",
+        body: { weeks: 4 },
+      });
+      toast(`${res.created} séance(s) ajoutée(s) au planning`);
       await load();
     } finally {
       setBusy(false);
@@ -71,7 +82,12 @@ function Planning() {
       return;
     }
     if (day.date < todayIso()) return;
-    if (!confirm(`Créer une séance le ${day.date} ?`)) return;
+    if (
+      !(await confirmDialog(`Créer une séance ${fmtDateLong(day.date)} ?`, {
+        confirmLabel: "Créer",
+      }))
+    )
+      return;
     const s = await api<SessionDetailDto>("/api/sessions/adhoc", {
       method: "POST",
       body: { date: day.date },

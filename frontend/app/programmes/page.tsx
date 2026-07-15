@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import {
   Button,
   Card,
+  confirmDialog,
   ErrorBanner,
   Input,
   Label,
@@ -12,6 +13,7 @@ import {
   SectionTitle,
   Select,
   Spinner,
+  toast,
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { ExerciseDto, FOCUS_OPTIONS, TemplateDto } from "@/lib/types";
@@ -55,7 +57,6 @@ function Programmes() {
   const [templates, setTemplates] = useState<TemplateDto[] | null>(null);
   const [exercises, setExercises] = useState<ExerciseDto[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
 
   // nouveau programme
   const [name, setName] = useState("");
@@ -76,11 +77,6 @@ function Programmes() {
   }, []);
 
   useEffect(load, [load]);
-
-  function flash(msg: string) {
-    setOk(msg);
-    setTimeout(() => setOk(null), 4000);
-  }
 
   async function createTemplate(e: React.FormEvent) {
     e.preventDefault();
@@ -108,7 +104,7 @@ function Programmes() {
       setName("");
       setDescription("");
       setRows([{ exerciseId: "", sets: "3", targetReps: "8-12", restSeconds: "90" }]);
-      flash("Programme créé — il est proposé pour les séances de ce focus");
+      toast("Programme créé — il sera proposé pour ce type de séance");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -116,9 +112,16 @@ function Programmes() {
   }
 
   async function deleteTemplate(t: TemplateDto) {
-    if (!confirm(`Supprimer le programme « ${t.name} » ?`)) return;
+    if (
+      !(await confirmDialog(`Supprimer le programme « ${t.name} » ?`, {
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await api(`/api/catalog/templates/${t.id}`, { method: "DELETE" });
+      toast("Programme supprimé");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -135,7 +138,7 @@ function Programmes() {
         body: { name: exName.trim(), muscleGroup: exGroup, type: exType },
       });
       setExName("");
-      flash("Exercice ajouté au catalogue");
+      toast("Exercice ajouté au catalogue");
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -151,11 +154,6 @@ function Programmes() {
       </PageTitle>
 
       <ErrorBanner message={error} />
-      {ok && (
-        <div className="rounded-xl bg-badge px-4 py-3 text-sm font-bold text-foreground">
-          {ok}
-        </div>
-      )}
 
       {/* Liste des programmes */}
       <div className="grid gap-4 md:grid-cols-2">

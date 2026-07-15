@@ -6,6 +6,7 @@ import AppShell from "@/components/AppShell";
 import {
   Button,
   Card,
+  CountUp,
   PageTitle,
   SectionTitle,
   Spinner,
@@ -75,7 +76,7 @@ function Dashboard() {
       )}
 
       {/* Séance du jour — bloc héro sable, façon Basic-Fit */}
-      <div className="overflow-hidden rounded-2xl bg-sand">
+      <div className="fade-up overflow-hidden rounded-2xl bg-sand">
         <div className="flex items-center justify-between px-6 pt-5">
           <span className="text-xs font-extrabold uppercase tracking-widest text-foreground/60">
             Séance du jour
@@ -138,7 +139,7 @@ function Dashboard() {
             Streak
           </div>
           <div className="mt-2 font-display text-5xl leading-none text-volt">
-            {data.streak}
+            <CountUp value={data.streak} />
             <span className="text-2xl text-foreground/40"> j</span>
           </div>
           <div className="mt-2 text-xs text-mute">jours d&apos;affilée</div>
@@ -148,7 +149,7 @@ function Dashboard() {
             Assiduité 30j
           </div>
           <div className="mt-2 font-display text-5xl leading-none text-foreground">
-            {data.attendanceRate30d}
+            <CountUp value={data.attendanceRate30d} />
             <span className="text-2xl text-foreground/40"> %</span>
           </div>
           <div className="mt-2 text-xs text-mute">
@@ -160,7 +161,7 @@ function Dashboard() {
             Séances
           </div>
           <div className="mt-2 font-display text-5xl leading-none text-foreground">
-            {data.totalCompleted}
+            <CountUp value={data.totalCompleted} />
           </div>
           <div className="mt-2 text-xs text-mute">au total</div>
         </div>

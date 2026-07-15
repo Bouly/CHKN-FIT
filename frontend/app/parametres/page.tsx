@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import {
   Button,
   Card,
+  confirmDialog,
   ErrorBanner,
   Input,
   Label,
@@ -12,6 +13,7 @@ import {
   SectionTitle,
   Select,
   Spinner,
+  toast,
 } from "@/components/ui";
 import { API_URL, api, getToken } from "@/lib/api";
 import {
@@ -164,7 +166,6 @@ function Parametres() {
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState<string | null>(null);
@@ -191,10 +192,7 @@ function Parametres() {
 
   useEffect(load, [load]);
 
-  function flash(msg: string) {
-    setSaved(msg);
-    setTimeout(() => setSaved(null), 4000);
-  }
+  const flash = toast;
 
   async function saveProfile() {
     setBusy(true);
@@ -285,14 +283,21 @@ function Parametres() {
       });
       setCurPwd("");
       setNewPwd("");
-      setPwdMsg("Mot de passe changé ✓");
+      setPwdMsg(null);
+      toast("Mot de passe changé");
     } catch (err) {
       setPwdMsg(err instanceof Error ? err.message : "Erreur");
     }
   }
 
   async function resetMemberPassword(m: MemberDto) {
-    if (!confirm(`Réinitialiser le mot de passe de ${m.displayName} ?`)) return;
+    if (
+      !(await confirmDialog(
+        `Réinitialiser le mot de passe de ${m.displayName} ? Un mot de passe temporaire sera généré.`,
+        { confirmLabel: "Réinitialiser" }
+      ))
+    )
+      return;
     const res = await api<{ tempPassword: string }>(
       `/api/team/members/${m.userId}/reset-password`,
       { method: "POST" }
@@ -310,7 +315,8 @@ function Parametres() {
         method: "POST",
         body: { weeks },
       });
-      setGenMsg(`${res.created} séance(s) créée(s)`);
+      setGenMsg(null);
+      toast(`${res.created} séance(s) créée(s)`);
     } catch (e) {
       setGenMsg(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -332,11 +338,6 @@ function Parametres() {
       </PageTitle>
 
       <ErrorBanner message={error} />
-      {saved && (
-        <div className="rounded-xl bg-badge px-4 py-3 text-sm font-bold text-foreground">
-          {saved}
-        </div>
-      )}
 
       {/* Profil */}
       <div>

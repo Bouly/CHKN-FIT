@@ -6,14 +6,17 @@ import { useParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import {
   Button,
+  confirmDialog,
   ErrorBanner,
   Input,
   Label,
+  Modal,
   PrBadge,
   SectionTitle,
   Select,
   Spinner,
   StatusPill,
+  toast,
 } from "@/components/ui";
 import { api, fmtDateLong } from "@/lib/api";
 import {
@@ -123,6 +126,7 @@ function SessionView() {
   }, [rest]);
 
   function beep() {
+    navigator.vibrate?.(200);
     try {
       audioCtx.current ??= new AudioContext();
       const ctx = audioCtx.current;
@@ -207,6 +211,8 @@ function SessionView() {
       });
       setSession(updated);
       setCompleteOpen(false);
+      if (status === "COMPLETED") toast("Séance validée — bien joué 💪");
+      if (status === "SKIPPED") toast("Séance skippée — le reste de la semaine ne bouge pas");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -288,8 +294,13 @@ function SessionView() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => {
-                  if (confirm("Skipper cette séance ? Le reste de la semaine ne bouge pas.")) {
+                onClick={async () => {
+                  if (
+                    await confirmDialog(
+                      "Skipper cette séance ? Le reste de ta semaine ne bouge pas — tu restes calé sur le groupe.",
+                      { confirmLabel: "Skipper" }
+                    )
+                  ) {
                     updateStatus("SKIPPED");
                   }
                 }}
@@ -302,7 +313,13 @@ function SessionView() {
                   variant="danger"
                   disabled={busy}
                   onClick={async () => {
-                    if (!confirm("Supprimer cette séance ?")) return;
+                    if (
+                      !(await confirmDialog("Supprimer cette séance ?", {
+                        confirmLabel: "Supprimer",
+                        danger: true,
+                      }))
+                    )
+                      return;
                     await api(`/api/sessions/${sessionId}`, { method: "DELETE" });
                     window.location.href = "/planning";
                   }}
@@ -417,7 +434,7 @@ function SessionView() {
 
       {/* Rest timer — bandeau orange fixé en bas */}
       {rest && (
-        <div className="fixed inset-x-0 bottom-16 z-30 bg-volt md:bottom-0 md:left-60">
+        <div className="rise-in fixed inset-x-0 bottom-16 z-30 bg-volt md:bottom-0 md:left-60">
           <div
             className="h-1 bg-white/40 transition-all"
             style={{ width: `${100 - (rest.remaining / rest.total) * 100}%` }}
@@ -453,10 +470,8 @@ function SessionView() {
       )}
 
       {/* Modal de validation */}
-      {completeOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-foreground/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
-            <SectionTitle>Valider la séance</SectionTitle>
+      <Modal open={completeOpen} onClose={() => setCompleteOpen(false)}>
+        <SectionTitle>Valider la séance</SectionTitle>
             <div className="flex flex-col gap-5">
               <div>
                 <Label>Durée (minutes)</Label>
@@ -508,9 +523,7 @@ function SessionView() {
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

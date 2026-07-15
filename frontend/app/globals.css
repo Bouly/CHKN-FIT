@@ -39,9 +39,45 @@
   letter-spacing: -0.01em;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* focus clavier : visible, propre, jamais au clic souris */
+:focus-visible {
+  outline: 2px solid #592bb2;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* champs numériques sans les spinners natifs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* accessibilité : on coupe les animations si l'utilisateur le demande */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 ::selection {
@@ -78,4 +114,47 @@ body {
 }
 .pr-slide {
   animation: pr-slide 0.25s ease-out;
+}
+
+/* entrée douce des pages/cartes */
+@keyframes fade-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fade-up {
+  animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* toasts */
+@keyframes toast-in {
+  from { transform: translateY(14px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.toast-in {
+  animation: toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* modales : fond + panneau */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modal-in {
+  from { transform: scale(0.96) translateY(6px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+.overlay-in {
+  animation: overlay-in 0.2s ease-out both;
+}
+.modal-in {
+  animation: modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* rest timer qui monte depuis le bas */
+@keyframes rise-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.rise-in {
+  animation: rise-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
