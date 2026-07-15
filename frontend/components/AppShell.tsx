@@ -18,6 +18,14 @@ const NAV = [
   { href: "/parametres", label: "Paramètres" },
 ];
 
+// mobile : 4 onglets directs + le reste dans "Plus"
+const NAV_MOBILE = NAV.filter((n) =>
+  ["/", "/planning", "/progression", "/equipe"].includes(n.href)
+);
+const NAV_MORE = NAV.filter(
+  (n) => !["/", "/planning", "/progression", "/equipe"].includes(n.href)
+);
+
 /** Wordmark façon logo Basic-Fit : heavy uppercase orange avec tiret. */
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
@@ -34,6 +42,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<UserDto | null>(null);
   const [ready, setReady] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -122,16 +131,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </aside>
 
-      {/* Barre mobile */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex border-t border-line bg-ink md:hidden">
-        {NAV.slice(0, 5).map((item) => {
+      {/* Barre mobile : 4 onglets + "Plus" */}
+      {moreOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-foreground/20 md:hidden"
+          onClick={() => setMoreOpen(false)}
+        />
+      )}
+      {moreOpen && (
+        <div className="toast-in fixed inset-x-3 bottom-20 z-30 overflow-hidden rounded-2xl border border-line bg-white shadow-xl md:hidden">
+          {NAV_MORE.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMoreOpen(false)}
+                className={`flex items-center gap-3 border-b border-line px-5 py-3.5 text-sm font-extrabold uppercase tracking-wide last:border-b-0 ${
+                  active ? "bg-[#fff6f0] text-volt" : "text-foreground/80"
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${active ? "bg-volt" : "bg-[#d5d5d5]"}`}
+                />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+      <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-ink md:hidden">
+        {NAV_MOBILE.map((item) => {
           const active =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-1 py-3 text-[8px] font-extrabold uppercase tracking-wide ${
+              onClick={() => setMoreOpen(false)}
+              className={`flex flex-1 flex-col items-center gap-1 py-3 text-[9px] font-extrabold uppercase tracking-wide ${
                 active ? "text-volt" : "text-mute"
               }`}
             >
@@ -142,6 +180,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <button
+          onClick={() => setMoreOpen((v) => !v)}
+          className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 text-[9px] font-extrabold uppercase tracking-wide ${
+            moreOpen || NAV_MORE.some((n) => pathname.startsWith(n.href))
+              ? "text-volt"
+              : "text-mute"
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              moreOpen || NAV_MORE.some((n) => pathname.startsWith(n.href))
+                ? "bg-volt"
+                : "bg-[#d5d5d5]"
+            }`}
+          />
+          Plus
+        </button>
       </div>
 
       <main className="flex-1 pb-24 md:ml-60 md:pb-0">

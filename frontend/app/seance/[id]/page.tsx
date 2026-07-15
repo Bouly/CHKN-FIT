@@ -295,7 +295,7 @@ function SessionView() {
             <span className="text-volt">.</span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={session.status} />
           {!done && (
             <>

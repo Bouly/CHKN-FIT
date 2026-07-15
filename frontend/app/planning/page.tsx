@@ -167,7 +167,7 @@ function Planning() {
                 <div
                   key={dateIso}
                   onClick={() => day && clickable && onDayClick(day)}
-                  className={`min-h-24 p-2 transition-colors ${
+                  className={`min-h-20 overflow-hidden p-1 transition-colors md:min-h-24 md:p-2 ${
                     isToday ? "bg-[#fff6f0]" : "bg-panel"
                   } ${clickable ? "cursor-pointer hover:bg-raise" : ""} ${
                     !day?.trainingDay && !session ? "bg-[#fdfcfa]" : ""
@@ -183,13 +183,13 @@ function Planning() {
                     {dayNum}
                   </div>
                   {day?.holiday && (
-                    <div className="mt-1.5 inline-block truncate rounded bg-badge px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-foreground">
+                    <div className="mt-1.5 block max-w-full truncate rounded bg-badge px-1 py-0.5 text-[8px] font-extrabold uppercase tracking-wide text-foreground md:px-1.5 md:text-[9px]">
                       {day.holidayName}
                     </div>
                   )}
                   {session && (
                     <div
-                      className={`mt-1.5 inline-block rounded border px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide ${
+                      className={`mt-1.5 block max-w-full truncate rounded border px-1 py-0.5 text-[8px] font-extrabold uppercase tracking-wide md:px-1.5 md:text-[9px] ${
                         STATUS_META[session.status]?.className ?? ""
                       }`}
                     >
