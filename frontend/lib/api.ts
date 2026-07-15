@@ -99,6 +99,11 @@ export function fmtDateLong(iso: string): string {
   });
 }
 
+/** Accord simple : plur(1, "séance") → "1 séance", plur(3, "séance") → "3 séances". */
+export function plur(n: number, word: string): string {
+  return `${n} ${word}${Math.abs(n) > 1 ? "s" : ""}`;
+}
+
 export function todayIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(

@@ -238,8 +238,9 @@ public class TeamService {
             User u = s.getUser();
             long prsThatDay = statsService.prEvents(u).stream()
                     .filter(p -> p.date().equals(s.getDate())).count();
+            int setCount = s.getSets().size();
             String text = "a validé sa séance " + s.getFocus().getLabel()
-                    + " (" + s.getSets().size() + " séries"
+                    + " (" + setCount + (setCount > 1 ? " séries" : " série")
                     + (prsThatDay > 0 ? ", " + prsThatDay + " PR 🎉" : "") + ")";
             items.add(new FeedItemDto(s.getDate(), u.getDisplayName(), u.getAvatarEmoji(),
                     text, s.getFocus().getEmoji()));

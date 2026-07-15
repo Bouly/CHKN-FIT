@@ -69,7 +69,11 @@ function Planning() {
         method: "POST",
         body: { weeks: 4 },
       });
-      toast(`${res.created} séance(s) ajoutée(s) au planning`);
+      toast(
+        res.created === 0
+          ? "Planning déjà à jour — rien à ajouter"
+          : `${res.created > 1 ? `${res.created} séances ajoutées` : "1 séance ajoutée"} au planning`
+      );
       await load();
     } finally {
       setBusy(false);

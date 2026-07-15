@@ -142,7 +142,9 @@ function Dashboard() {
             <CountUp value={data.streak} />
             <span className="text-2xl text-foreground/40"> j</span>
           </div>
-          <div className="mt-2 text-xs text-mute">jours d&apos;affilée</div>
+          <div className="mt-2 text-xs text-mute">
+            {data.streak > 1 ? "jours d'affilée" : "jour d'affilée"}
+          </div>
         </div>
         <div className="rounded-xl border border-line bg-panel p-5">
           <div className="text-xs font-bold uppercase tracking-wide text-mute">

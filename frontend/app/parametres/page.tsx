@@ -316,7 +316,13 @@ function Parametres() {
         body: { weeks },
       });
       setGenMsg(null);
-      toast(`${res.created} séance(s) créée(s)`);
+      toast(
+        res.created === 0
+          ? "Planning déjà à jour — rien à créer"
+          : res.created > 1
+            ? `${res.created} séances créées`
+            : "1 séance créée"
+      );
     } catch (e) {
       setGenMsg(e instanceof Error ? e.message : "Erreur");
     } finally {

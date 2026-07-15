@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { Card, CountUp, PageTitle, SectionTitle, Spinner } from "@/components/ui";
-import { api, fmtDate } from "@/lib/api";
+import { api, fmtDate, plur } from "@/lib/api";
 import {
   BadgeDto,
   FeedItemDto,
@@ -69,7 +69,8 @@ function Equipe() {
               <span className="ml-2 text-xs text-foreground/60">soulevés ensemble</span>
             </div>
             <div className="text-sm font-bold text-foreground/70">
-              {weekStats.totalSessions} séances · {weekStats.totalSets} séries
+              {plur(weekStats.totalSessions, "séance")} ·{" "}
+              {plur(weekStats.totalSets, "série")}
             </div>
           </div>
         </div>
@@ -131,7 +132,8 @@ function Equipe() {
                       )}
                     </div>
                     <div className="text-xs text-mute">
-                      {e.sessions} séances · {e.prs} PR · {e.photos} photos
+                      {plur(e.sessions, "séance")} · {e.prs} PR ·{" "}
+                      {plur(e.photos, "photo")}
                       {e.streak > 0 && ` · streak ${e.streak}j`}
                     </div>
                   </div>
@@ -199,7 +201,7 @@ function Equipe() {
                       {m.displayName}
                     </div>
                     <div className="text-xs text-mute">
-                      {m.totalSessions} séances
+                      {plur(m.totalSessions, "séance")}
                       {m.streak > 0 && ` · streak ${m.streak}j`}
                       {m.goal && ` · ${m.goal}`}
                     </div>
