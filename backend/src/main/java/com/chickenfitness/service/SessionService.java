@@ -95,6 +95,12 @@ public class SessionService {
         if (req.rpe() != null) s.setRpe(Math.min(10, Math.max(1, req.rpe())));
         if (req.notes() != null) s.setNotes(req.notes());
         if (req.durationMin() != null) s.setDurationMin(req.durationMin());
+        if (req.hiddenExerciseIds() != null) {
+            s.setHiddenExercises(WorkoutSession.idsToCsv(req.hiddenExerciseIds()));
+        }
+        if (req.addedExerciseIds() != null) {
+            s.setAddedExercises(WorkoutSession.idsToCsv(req.addedExerciseIds()));
+        }
         sessionRepository.save(s);
         return toDetail(user, s);
     }
@@ -175,9 +181,10 @@ public class SessionService {
         TemplateDto suggested = templateRepository.findByFocus(s.getFocus()).stream()
                 .findFirst().map(TemplateDto::from).orElse(null);
 
-        // exercices concernés : ceux du template suggéré + ceux déjà loggés
+        // exercices concernés : template suggéré + ajoutés à la séance + déjà loggés
         Set<Long> exerciseIds = new HashSet<>();
         if (suggested != null) suggested.exercises().forEach(te -> exerciseIds.add(te.exercise().id()));
+        exerciseIds.addAll(s.addedExerciseIdList());
         s.getSets().forEach(e -> exerciseIds.add(e.getExercise().getId()));
 
         Map<Long, ExerciseBestDto> bests = new HashMap<>();
@@ -219,7 +226,8 @@ public class SessionService {
 
         return new SessionDetailDto(s.getId(), s.getDate(), s.getFocus().name(),
                 s.getFocus().getLabel(), s.getFocus().getEmoji(), s.getStatus().name(),
-                s.getNotes(), s.getDurationMin(), s.getRpe(), setDtos, suggested, bests);
+                s.getNotes(), s.getDurationMin(), s.getRpe(), setDtos, suggested, bests,
+                s.hiddenExerciseIdList(), s.addedExerciseIdList());
     }
 
     /**

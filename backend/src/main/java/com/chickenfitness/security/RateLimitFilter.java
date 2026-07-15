@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int MAX_PER_MINUTE = 10;
+    private static final int MAX_PER_MINUTE = 20;
     private static final long WINDOW_MS = 60_000;
 
     private final Map<String, Deque<Long>> hits = new ConcurrentHashMap<>();

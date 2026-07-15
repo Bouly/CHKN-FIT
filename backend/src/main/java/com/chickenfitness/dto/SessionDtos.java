@@ -36,13 +36,17 @@ public final class SessionDtos {
                                    String focusEmoji, String status, String notes, Integer durationMin,
                                    Integer rpe, List<SetDto> sets,
                                    CatalogDtos.TemplateDto suggestedTemplate,
-                                   Map<Long, ExerciseBestDto> bests) {}
+                                   Map<Long, ExerciseBestDto> bests,
+                                   List<Long> hiddenExerciseIds,
+                                   List<Long> addedExerciseIds) {}
 
     public record LogSetRequest(@NotNull Long exerciseId, Integer reps, Double weightKg,
                                 Integer durationSec, Double distanceM) {}
 
     public record UpdateSessionRequest(SessionStatus status, Integer rpe, String notes,
-                                       Integer durationMin, Focus focus) {}
+                                       Integer durationMin, Focus focus,
+                                       List<Long> hiddenExerciseIds,
+                                       List<Long> addedExerciseIds) {}
 
     public static SessionSummary summary(WorkoutSession s) {
         return new SessionSummary(s.getId(), s.getDate(), s.getFocus().name(), s.getStatus().name());

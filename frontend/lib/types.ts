@@ -123,6 +123,8 @@ export interface SessionDetailDto {
   sets: SetDto[];
   suggestedTemplate: TemplateDto | null;
   bests: Record<number, ExerciseBestDto>;
+  hiddenExerciseIds: number[];
+  addedExerciseIds: number[];
 }
 
 export interface PrDto {

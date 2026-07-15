@@ -51,7 +51,6 @@ function SessionView() {
 
   const [session, setSession] = useState<SessionDetailDto | null>(null);
   const [catalog, setCatalog] = useState<ExerciseDto[]>([]);
-  const [extraExercises, setExtraExercises] = useState<ExerciseDto[]>([]);
   const [addSelect, setAddSelect] = useState("");
   const [inputs, setInputs] = useState<Record<number, SetInput>>({});
   const [error, setError] = useState<string | null>(null);
@@ -202,6 +201,18 @@ function SessionView() {
     load();
   }
 
+  /** Personnalise la liste d'exos de CETTE séance (persisté côté serveur). */
+  async function patchExos(body: {
+    hiddenExerciseIds?: number[];
+    addedExerciseIds?: number[];
+  }) {
+    const updated = await api<SessionDetailDto>(`/api/sessions/${sessionId}`, {
+      method: "PATCH",
+      body,
+    });
+    setSession(updated);
+  }
+
   async function updateStatus(status: string, extra: Record<string, unknown> = {}) {
     setBusy(true);
     try {
@@ -232,13 +243,30 @@ function SessionView() {
     setsByExercise.set(s.exerciseId, list);
   }
 
-  // exercices affichés : template suggéré + extras ajoutés + ceux avec des séries loggées
-  const templateExercises: TemplateExerciseDto[] =
-    session.suggestedTemplate?.exercises ?? [];
+  // exercices affichés : template (moins ceux retirés) + ajoutés + ceux avec des séries loggées
+  const hidden = new Set(session.hiddenExerciseIds ?? []);
+  const added = session.addedExerciseIds ?? [];
+  const templateExercises: TemplateExerciseDto[] = (
+    session.suggestedTemplate?.exercises ?? []
+  ).filter(
+    (te) =>
+      !hidden.has(te.exercise.id) ||
+      (setsByExercise.get(te.exercise.id)?.length ?? 0) > 0
+  );
+  const hiddenCount =
+    (session.suggestedTemplate?.exercises.length ?? 0) - templateExercises.length;
   const shownIds = new Set(templateExercises.map((te) => te.exercise.id));
-  const extras: ExerciseDto[] = [...extraExercises];
+  const extras: ExerciseDto[] = [];
+  for (const exId of added) {
+    if (shownIds.has(exId)) continue;
+    const found = catalog.find((c) => c.id === exId);
+    if (found) {
+      extras.push(found);
+      shownIds.add(exId);
+    }
+  }
   for (const [exId, sets] of setsByExercise) {
-    if (!shownIds.has(exId) && !extras.some((e) => e.id === exId)) {
+    if (!shownIds.has(exId)) {
       const found = catalog.find((c) => c.id === exId);
       if (found) extras.push(found);
       else if (sets.length > 0) {
@@ -252,9 +280,9 @@ function SessionView() {
           builtin: false,
         });
       }
+      shownIds.add(exId);
     }
   }
-  extras.forEach((e) => shownIds.add(e.id));
 
   return (
     <div className="flex flex-col gap-8">
@@ -379,6 +407,14 @@ function SessionView() {
                 setInput={(p) => setInput(te.exercise.id, p)}
                 onLog={() => logSet(te.exercise, te.restSeconds)}
                 onDeleteSet={deleteSet}
+                onRemove={() =>
+                  patchExos({
+                    hiddenExerciseIds: [
+                      ...(session.hiddenExerciseIds ?? []),
+                      te.exercise.id,
+                    ],
+                  })
+                }
               />
             ))}
             {extras.map((ex) => (
@@ -393,9 +429,25 @@ function SessionView() {
                 setInput={(p) => setInput(ex.id, p)}
                 onLog={() => logSet(ex, 90)}
                 onDeleteSet={deleteSet}
+                onRemove={() =>
+                  patchExos({
+                    addedExerciseIds: (session.addedExerciseIds ?? []).filter(
+                      (i) => i !== ex.id
+                    ),
+                  })
+                }
               />
             ))}
           </div>
+
+          {hiddenCount > 0 && (
+            <button
+              onClick={() => patchExos({ hiddenExerciseIds: [] })}
+              className="cursor-pointer self-start text-xs font-bold uppercase tracking-wide text-cta hover:underline"
+            >
+              ↺ Rétablir {hiddenCount > 1 ? `les ${hiddenCount} exercices retirés` : "l'exercice retiré"}
+            </button>
+          )}
 
           {/* Ajouter un exercice hors programme */}
           <div>
@@ -416,12 +468,13 @@ function SessionView() {
               </Select>
               <Button
                 variant="secondary"
-                onClick={() => {
-                  const ex = catalog.find((c) => c.id === Number(addSelect));
-                  if (ex) {
-                    setExtraExercises((prev) => [...prev, ex]);
-                    setAddSelect("");
-                  }
+                onClick={async () => {
+                  const id = Number(addSelect);
+                  if (!id) return;
+                  await patchExos({
+                    addedExerciseIds: [...(session.addedExerciseIds ?? []), id],
+                  });
+                  setAddSelect("");
                 }}
                 disabled={!addSelect}
               >
@@ -553,6 +606,7 @@ function ExerciseBlock({
   setInput,
   onLog,
   onDeleteSet,
+  onRemove,
 }: {
   exercise: ExerciseDto;
   target: string | null;
@@ -563,6 +617,7 @@ function ExerciseBlock({
   setInput: (patch: Partial<SetInput>) => void;
   onLog: () => void;
   onDeleteSet: (setId: number) => void;
+  onRemove?: () => void;
 }) {
   const isStrength = exercise.type === "STRENGTH" || exercise.type === "BODYWEIGHT";
   const isCardio = exercise.type === "CARDIO";
@@ -580,29 +635,40 @@ function ExerciseBlock({
             </span>
           )}
         </div>
-        {best && (best.bestE1rm || best.lastReps != null) && (
-          <div className="text-xs font-semibold text-mute">
-            {best.bestE1rm && (
-              <span className="mr-4">
-                Record <span className="font-extrabold text-volt">{best.bestE1rm} kg</span>
-                {best.bestWeightKg && ` (${best.bestWeightKg}×${best.bestReps})`}
-              </span>
-            )}
-            {best.lastReps != null && (
-              <span className="mr-4">
-                Dernier {best.lastWeightKg ? `${best.lastWeightKg} kg × ` : ""}
-                {best.lastReps}
-              </span>
-            )}
-            {best.suggestedWeightKg != null &&
-              best.lastWeightKg != null &&
-              best.suggestedWeightKg > best.lastWeightKg && (
-                <span className="font-extrabold text-volt">
-                  Suggestion {best.suggestedWeightKg} kg ↗
+        <div className="flex items-center gap-3">
+          {best && (best.bestE1rm || best.lastReps != null) && (
+            <div className="text-xs font-semibold text-mute">
+              {best.bestE1rm && (
+                <span className="mr-4">
+                  Record <span className="font-extrabold text-volt">{best.bestE1rm} kg</span>
+                  {best.bestWeightKg && ` (${best.bestWeightKg}×${best.bestReps})`}
                 </span>
               )}
-          </div>
-        )}
+              {best.lastReps != null && (
+                <span className="mr-4">
+                  Dernier {best.lastWeightKg ? `${best.lastWeightKg} kg × ` : ""}
+                  {best.lastReps}
+                </span>
+              )}
+              {best.suggestedWeightKg != null &&
+                best.lastWeightKg != null &&
+                best.suggestedWeightKg > best.lastWeightKg && (
+                  <span className="font-extrabold text-volt">
+                    Suggestion {best.suggestedWeightKg} kg ↗
+                  </span>
+                )}
+            </div>
+          )}
+          {onRemove && sets.length === 0 && (
+            <button
+              onClick={onRemove}
+              title="Retirer cet exercice de la séance"
+              className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-bold text-[#d5d5d5] transition-colors hover:bg-red-50 hover:text-alarm"
+            >
+              ✕ Retirer
+            </button>
+          )}
+        </div>
       </div>
 
       {sets.length > 0 && (
